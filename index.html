@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortgage Payment Calculator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general appearance */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc; /* Light background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="w-full max-w-lg bg-white p-8 md:p-10 rounded-xl shadow-2xl border border-gray-100">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">Mortgage Payment Calculator</h1>
+        <p class="text-gray-500 mb-8 text-center">
+            Calculate your estimated monthly payment and total loan cost.
+        </p>
+
+        <!-- Input Form -->
+        <div id="inputForm" class="space-y-6">
+            
+            <!-- Principal Amount -->
+            <div>
+                <label for="principal" class="block text-sm font-medium text-gray-700 mb-1">Principal Amount (Loan Units)</label>
+                <input type="number" id="principal" value="200000" min="0.01" step="0.01"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                       placeholder="e.g., 200000">
+            </div>
+
+            <!-- Annual Interest Rate (%) -->
+            <div>
+                <label for="annualRate" class="block text-sm font-medium text-gray-700 mb-1">Annual Interest Rate (%)</label>
+                <input type="number" id="annualRate" value="4.5" min="0" step="0.01"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                       placeholder="e.g., 4.5">
+            </div>
+
+            <!-- Loan Term (Years) -->
+            <div>
+                <label for="loanTermYears" class="block text-sm font-medium text-gray-700 mb-1">Loan Term (Years)</label>
+                <input type="number" id="loanTermYears" value="30" min="1" step="1"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                       placeholder="e.g., 30">
+            </div>
+            
+            <!-- Calculate Button -->
+            <button onclick="calculateMortgagePayment()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                Calculate Monthly Payment
+            </button>
+
+            <!-- Error Message Display -->
+            <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+                <span id="errorText" class="block sm:inline"></span>
+            </div>
+        </div>
+
+        <!-- Output Section - space-y-6 for increased spacing -->
+        <div id="outputSection" class="mt-8 pt-6 border-t border-gray-200 hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Summary</h2>
+            
+            <div class="space-y-6">
+                
+                <!-- Monthly Payment -->
+                <div class="flex justify-between items-center bg-indigo-50 p-4 rounded-lg border-2 border-indigo-200">
+                    <span class="text-gray-600 font-medium">Estimated Monthly Payment:</span>
+                    <!-- Initial placeholder text adjusted to reflect new format -->
+                    <span id="outputMonthlyPayment" class="text-2xl font-extrabold text-indigo-700">1,013</span> 
+                </div>
+                
+                <!-- Total Interest Paid -->
+                <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
+                    <span class="text-gray-600 font-medium">Total Interest Paid:</span>
+                    <!-- Initial placeholder text adjusted to reflect new format -->
+                    <span id="outputTotalInterest" class="text-xl font-bold text-green-600">164,802</span> 
+                </div>
+
+                <!-- Total Cost of Loan -->
+                <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
+                    <span class="text-gray-600 font-medium">Total Cost of Loan (P + I):</span>
+                    <!-- Initial placeholder text adjusted to reflect new format -->
+                    <span id="outputTotalCost" class="text-xl font-bold text-green-600">364,802</span> 
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Calculates the standard monthly mortgage payment using the Amortization Formula.
+         * M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1 ]
+         * Where: P = Principal, i = monthly rate, n = total number of payments
+         */
+        function calculateMortgagePayment() {
+            // Get input values
+            const principal = parseFloat(document.getElementById('principal').value);
+            const annualRate = parseFloat(document.getElementById('annualRate').value);
+            const loanTermYears = parseInt(document.getElementById('loanTermYears').value, 10);
+            
+            const errorMessageDiv = document.getElementById('errorMessage');
+            const errorTextSpan = document.getElementById('errorText');
+            const outputSection = document.getElementById('outputSection');
+
+            // --- Input Validation ---
+            if (isNaN(principal) || isNaN(annualRate) || isNaN(loanTermYears) || 
+                principal <= 0 || loanTermYears <= 0 || annualRate < 0) {
+                
+                errorTextSpan.textContent = "Please enter valid, positive numbers for all fields.";
+                errorMessageDiv.classList.remove('hidden');
+                outputSection.classList.add('hidden');
+                return;
+            }
+
+            // Hide previous error message
+            errorMessageDiv.classList.add('hidden');
+            
+            // --- Calculation Variables ---
+            const monthlyRate = (annualRate / 100) / 12; // i
+            const totalPayments = loanTermYears * 12;    // n
+
+            let monthlyPayment = 0;
+            let totalInterest = 0;
+            let totalCost = 0;
+
+            if (monthlyRate > 0) {
+                // Amortization Formula Calculation
+                const numerator = monthlyRate * Math.pow((1 + monthlyRate), totalPayments);
+                const denominator = Math.pow((1 + monthlyRate), totalPayments) - 1;
+                monthlyPayment = principal * (numerator / denominator);
+            } else {
+                // Case where interest rate is 0 (simple division)
+                monthlyPayment = principal / totalPayments;
+            }
+            
+            // Calculate Total Interest and Cost
+            totalCost = monthlyPayment * totalPayments;
+            totalInterest = totalCost - principal;
+            
+            // --- Number Formatting Helper ---
+            // Rounds the number to the nearest integer and applies comma separators.
+            const formatNumber = (num) => {
+                return Math.round(num).toLocaleString('en-US'); 
+            };
+            
+            // --- Update Output ---
+            
+            document.getElementById('outputMonthlyPayment').textContent = formatNumber(monthlyPayment);
+            document.getElementById('outputTotalInterest').textContent = formatNumber(totalInterest);
+            document.getElementById('outputTotalCost').textContent = formatNumber(totalCost);
+            
+            // Show the results section
+            outputSection.classList.remove('hidden');
+        }
+        
+        // Run calculation once on load with default values for immediate display
+        window.onload = function() {
+            calculateMortgagePayment();
+        };
+
+    </script>
+
+</body>
+</html>
